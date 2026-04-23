@@ -10,7 +10,6 @@ app.use(express.json());
 
 const FILE = "./orders.json";
 
-/* helper functions */
 function getOrders() {
   return JSON.parse(fs.readFileSync(FILE, "utf8"));
 }
@@ -19,7 +18,6 @@ function saveOrders(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
 
-/* health check */
 app.get("/", (req, res) => {
   res.send("Felicia Bakes API is running");
 });
@@ -27,7 +25,6 @@ app.get("/", (req, res) => {
 /* create order */
 app.post("/orders", (req, res) => {
   const orders = getOrders();
-
   const newOrderNumber = "FB" + String(orders.length + 1).padStart(3, "0");
 
   const newOrder = {
@@ -55,6 +52,40 @@ app.get("/track/:orderNumber", (req, res) => {
   }
 
   res.json(order);
+});
+
+/* update order status */
+app.patch("/orders/:orderNumber/status", (req, res) => {
+  const { orderNumber } = req.params;
+  const { status } = req.body;
+
+  const allowedStatuses = [
+    "Awaiting Payment",
+    "In Progress",
+    "Ready for Collection"
+  ];
+
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  const orders = getOrders();
+
+  const orderIndex = orders.findIndex(
+    (o) => o.orderNumber.toLowerCase() === orderNumber.toLowerCase()
+  );
+
+  if (orderIndex === -1) {
+    return res.status(404).json({ message: "Order not found" });
+  }
+
+  orders[orderIndex].status = status;
+  saveOrders(orders);
+
+  res.json({
+    message: "Order status updated",
+    order: orders[orderIndex]
+  });
 });
 
 app.listen(PORT, () => {
