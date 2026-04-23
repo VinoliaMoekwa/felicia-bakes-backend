@@ -12,12 +12,17 @@ const FILE = "./orders.json";
 
 /* helper functions */
 function getOrders() {
-  return JSON.parse(fs.readFileSync(FILE));
+  return JSON.parse(fs.readFileSync(FILE, "utf8"));
 }
 
 function saveOrders(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
 }
+
+/* health check */
+app.get("/", (req, res) => {
+  res.send("Felicia Bakes API is running");
+});
 
 /* create order */
 app.post("/orders", (req, res) => {
@@ -42,7 +47,7 @@ app.get("/track/:orderNumber", (req, res) => {
   const orders = getOrders();
 
   const order = orders.find(
-    o => o.orderNumber === req.params.orderNumber
+    (o) => o.orderNumber.toLowerCase() === req.params.orderNumber.toLowerCase()
   );
 
   if (!order) {
