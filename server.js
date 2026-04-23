@@ -110,4 +110,65 @@ app.post("/orders", async (req, res) => {
   }
 });
 
-app
+app.get("/track/:orderNumber", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE LOWER(order_number) = LOWER($1)",
+      [req.params.orderNumber]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Order not found");
+    }
+
+    const order = result.rows[0];
+
+    res.json({
+      orderNumber: order.order_number,
+      status: order.status
+    });
+  } catch (error) {
+    console.error("Track order error:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+app.patch("/orders/:orderNumber/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const allowed = ["Awaiting Payment", "In Progress", "Ready for Collection"];
+
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const result = await pool.query(
+      `UPDATE orders
+       SET status = $1
+       WHERE LOWER(order_number) = LOWER($2)
+       RETURNING *`,
+      [status, req.params.orderNumber]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const order = result.rows[0];
+
+    res.json({
+      message: "Order status updated",
+      order: {
+        orderNumber: order.order_number,
+        status: order.status
+      }
+    });
+  } catch (error) {
+    console.error("Update status error:", error);
+    res.status(500).json({ message: "Failed to update status" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
