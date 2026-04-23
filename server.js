@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
+const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,86 +8,106 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const FILE = "./orders.json";
-
-function getOrders() {
-  return JSON.parse(fs.readFileSync(FILE, "utf8"));
-}
-
-function saveOrders(data) {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-}
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes("localhost")
+    ? false
+    : { rejectUnauthorized: false }
+});
 
 app.get("/", (req, res) => {
   res.send("Felicia Bakes API is running");
 });
 
-/* create order */
-app.post("/orders", (req, res) => {
-  const orders = getOrders();
-  const newOrderNumber = "FB" + String(orders.length + 1).padStart(3, "0");
+app.post("/orders", async (req, res) => {
+  try {
+    const countResult = await pool.query("SELECT COUNT(*) FROM orders");
+    const nextNumber = Number(countResult.rows[0].count) + 1;
+    const orderNumber = "FB" + String(nextNumber).padStart(3, "0");
 
-  const newOrder = {
-    orderNumber: newOrderNumber,
-    ...req.body,
-    status: "Awaiting Payment"
-  };
+    const {
+      name,
+      email,
+      cakeSelected,
+      cupcakeSelected,
+      flavour,
+      filling,
+      cakeSize,
+      designType,
+      cupcakeTopping,
+      cupcakeQuantity,
+      colorScheme,
+      message,
+      dietary,
+      occasion,
+      eventDate,
+      eventTime,
+      totalPrice
+    } = req.body;
 
-  orders.push(newOrder);
-  saveOrders(orders);
+    const result = await pool.query(
+      `INSERT INTO orders (
+        order_number, name, email, cake_selected, cupcake_selected,
+        flavour, filling, cake_size, design_type, cupcake_topping,
+        cupcake_quantity, color_scheme, message, dietary, occasion,
+        event_date, event_time, total_price, status
+      ) VALUES (
+        $1,$2,$3,$4,$5,
+        $6,$7,$8,$9,$10,
+        $11,$12,$13,$14,$15,
+        $16,$17,$18,$19
+      )
+      RETURNING *`,
+      [
+        orderNumber,
+        name,
+        email,
+        !!cakeSelected,
+        !!cupcakeSelected,
+        flavour || null,
+        filling || null,
+        cakeSize || null,
+        designType || null,
+        cupcakeTopping || null,
+        Number(cupcakeQuantity || 0),
+        colorScheme || null,
+        message || null,
+        dietary || null,
+        occasion || null,
+        eventDate || null,
+        eventTime || null,
+        totalPrice || 0,
+        "Awaiting Payment"
+      ]
+    );
 
-  res.json(newOrder);
-});
+    const order = result.rows[0];
 
-/* track order */
-app.get("/track/:orderNumber", (req, res) => {
-  const orders = getOrders();
-
-  const order = orders.find(
-    (o) => o.orderNumber.toLowerCase() === req.params.orderNumber.toLowerCase()
-  );
-
-  if (!order) {
-    return res.status(404).send("Order not found");
+    res.json({
+      orderNumber: order.order_number,
+      name: order.name,
+      email: order.email,
+      cakeSelected: order.cake_selected,
+      cupcakeSelected: order.cupcake_selected,
+      flavour: order.flavour,
+      filling: order.filling,
+      cakeSize: order.cake_size,
+      designType: order.design_type,
+      cupcakeTopping: order.cupcake_topping,
+      cupcakeQuantity: order.cupcake_quantity,
+      colorScheme: order.color_scheme,
+      message: order.message,
+      dietary: order.dietary,
+      occasion: order.occasion,
+      eventDate: order.event_date,
+      eventTime: order.event_time,
+      totalPrice: order.total_price,
+      status: order.status
+    });
+  } catch (error) {
+    console.error("Create order error:", error);
+    res.status(500).json({ message: "Failed to create order" });
   }
-
-  res.json(order);
 });
 
-/* update order status */
-app.patch("/orders/:orderNumber/status", (req, res) => {
-  const { orderNumber } = req.params;
-  const { status } = req.body;
-
-  const allowedStatuses = [
-    "Awaiting Payment",
-    "In Progress",
-    "Ready for Collection"
-  ];
-
-  if (!allowedStatuses.includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
-  }
-
-  const orders = getOrders();
-
-  const orderIndex = orders.findIndex(
-    (o) => o.orderNumber.toLowerCase() === orderNumber.toLowerCase()
-  );
-
-  if (orderIndex === -1) {
-    return res.status(404).json({ message: "Order not found" });
-  }
-
-  orders[orderIndex].status = status;
-  saveOrders(orders);
-
-  res.json({
-    message: "Order status updated",
-    order: orders[orderIndex]
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app
