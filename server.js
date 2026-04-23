@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -7,23 +8,45 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Server is working");
+const FILE = "./orders.json";
+
+/* helper functions */
+function getOrders() {
+  return JSON.parse(fs.readFileSync(FILE));
+}
+
+function saveOrders(data) {
+  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
+}
+
+/* create order */
+app.post("/orders", (req, res) => {
+  const orders = getOrders();
+
+  const newOrderNumber = "FB" + String(orders.length + 1).padStart(3, "0");
+
+  const newOrder = {
+    orderNumber: newOrderNumber,
+    ...req.body,
+    status: "Awaiting Payment"
+  };
+
+  orders.push(newOrder);
+  saveOrders(orders);
+
+  res.json(newOrder);
 });
 
-const orders = [
-  { orderNumber: "FB001", status: "Awaiting Payment" },
-  { orderNumber: "FB002", status: "In Progress" },
-  { orderNumber: "FB003", status: "Ready for Collection" }
-];
-
+/* track order */
 app.get("/track/:orderNumber", (req, res) => {
+  const orders = getOrders();
+
   const order = orders.find(
-    o => o.orderNumber.toLowerCase() === req.params.orderNumber.toLowerCase()
+    o => o.orderNumber === req.params.orderNumber
   );
 
   if (!order) {
-    return res.send("Order not found");
+    return res.status(404).send("Order not found");
   }
 
   res.json(order);
