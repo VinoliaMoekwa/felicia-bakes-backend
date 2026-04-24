@@ -15,10 +15,12 @@ const pool = new Pool({
     : { rejectUnauthorized: false }
 });
 
+/* Root */
 app.get("/", (req, res) => {
   res.send("Felicia Bakes API is running");
 });
 
+/* Create Order */
 app.post("/orders", async (req, res) => {
   try {
     const countResult = await pool.query("SELECT COUNT(*) FROM orders");
@@ -110,6 +112,7 @@ app.post("/orders", async (req, res) => {
   }
 });
 
+/* Track Order */
 app.get("/track/:orderNumber", async (req, res) => {
   try {
     const result = await pool.query(
@@ -133,8 +136,15 @@ app.get("/track/:orderNumber", async (req, res) => {
   }
 });
 
+/* 🔐 Update Order Status (Protected) */
 app.patch("/orders/:orderNumber/status", async (req, res) => {
   try {
+    const adminToken = req.headers["x-admin-token"];
+
+    if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const { status } = req.body;
     const allowed = ["Awaiting Payment", "In Progress", "Ready for Collection"];
 
@@ -169,6 +179,7 @@ app.patch("/orders/:orderNumber/status", async (req, res) => {
   }
 });
 
+/* Start Server */
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
