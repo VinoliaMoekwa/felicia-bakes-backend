@@ -30,6 +30,7 @@ app.post("/orders", async (req, res) => {
     const {
       name,
       email,
+      phoneNumber,
       cakeSelected,
       cupcakeSelected,
       flavour,
@@ -49,21 +50,38 @@ app.post("/orders", async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO orders (
-        order_number, name, email, cake_selected, cupcake_selected,
-        flavour, filling, cake_size, design_type, cupcake_topping,
-        cupcake_quantity, color_scheme, message, dietary, occasion,
-        event_date, event_time, total_price, status
+        order_number,
+        name,
+        email,
+        phone_number,
+        cake_selected,
+        cupcake_selected,
+        flavour,
+        filling,
+        cake_size,
+        design_type,
+        cupcake_topping,
+        cupcake_quantity,
+        color_scheme,
+        message,
+        dietary,
+        occasion,
+        event_date,
+        event_time,
+        total_price,
+        status
       ) VALUES (
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,
-        $16,$17,$18,$19
+        $16,$17,$18,$19,$20
       )
       RETURNING *`,
       [
         orderNumber,
         name,
         email,
+        phoneNumber || null,
         !!cakeSelected,
         !!cupcakeSelected,
         flavour || null,
@@ -89,6 +107,7 @@ app.post("/orders", async (req, res) => {
       orderNumber: order.order_number,
       name: order.name,
       email: order.email,
+      phoneNumber: order.phone_number,
       cakeSelected: order.cake_selected,
       cupcakeSelected: order.cupcake_selected,
       flavour: order.flavour,
@@ -106,9 +125,12 @@ app.post("/orders", async (req, res) => {
       totalPrice: order.total_price,
       status: order.status
     });
+
   } catch (error) {
     console.error("Create order error:", error);
-    res.status(500).json({ message: "Failed to create order" });
+    res.status(500).json({
+      message: "Failed to create order"
+    });
   }
 });
 
