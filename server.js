@@ -79,7 +79,7 @@ app.post("/orders", async (req, res) => {
         eventDate || null,
         eventTime || null,
         totalPrice || 0,
-        "Awaiting Payment"
+        "Quote Requested"
       ]
     );
 
@@ -146,7 +146,15 @@ app.patch("/orders/:orderNumber/status", async (req, res) => {
     }
 
     const { status } = req.body;
-    const allowed = ["Awaiting Payment", "In Progress", "Ready for Collection"];
+    const allowed = [
+      "Quote Requested",
+      "Deposit Paid",
+      "Design Confirmed",
+      "Baking",
+      "Decorating",
+      "Ready for Collection",
+      "Collected"
+    ];
 
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
