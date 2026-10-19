@@ -6,6 +6,7 @@ if (process.env.RENDER && fs.existsSync("/etc/secrets/felicia-dashboard.env")) {
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+const { sendOrderEmail } = require("./order-email");
 
 function createApp({ pool: suppliedPool, env = process.env, mail = null } = {}) {
 const app = express();
@@ -112,8 +113,13 @@ app.post("/orders", async (req, res) => {
     );
 
     const order = result.rows[0];
+    const notification = await sendOrderEmail(order);
+    if (notification.status !== "sent") {
+      console.warn("Order email notification:", notification.status, notification.code || "");
+    }
 
     res.json({
+      emailNotification: notification.status,
       orderNumber: order.order_number,
       name: order.name,
       email: order.email,

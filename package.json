@@ -4,6 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node --env-file=.env server.js",
     "demo": "node demo.js",
     "test": "node --test test/*.test.js",
     "mail:setup": "python3 secure-mail-setup.py",
