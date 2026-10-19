@@ -5,15 +5,17 @@ const STAGES = ['Quote Requested','Deposit Paid','Design Confirmed','Baking','De
 function installAdmin(app, pool, { env = process.env, mail = null, updateOrder = null } = {}) {
  const sessions = new Map(), attempts = new Map();
  const demo = env.DASHBOARD_DEMO === 'true';
+ const secureCookie = env.NODE_ENV === 'production' || env.RENDER === 'true';
  if (demo && env.NODE_ENV === 'production') throw Error('Demo must not run in production');
  const demoOrders = [{id:1,order_number:'DEMO001',name:'Demo customer',email:'customer@example.invalid',phone_number:'',message:'Pink celebration cake, serves 12.',flavour:'Vanilla',cake_size:'Small',status:'Quote Requested',created_at:new Date().toISOString()}];
  demoOrders.push({id:2,order_number:'DEMO002',name:'Sample celebration',email:'celebration@example.invalid',message:'Buttercream flowers in soft pink.',flavour:'Chocolate',cake_size:'Medium',event_date:new Date(Date.now()+86400000).toISOString().slice(0,10),event_time:'14:00:00',status:'Decorating',created_at:new Date(Date.now()-86400000).toISOString()}, {id:3,order_number:'DEMO003',name:'Sample cupcake order',email:'cupcakes@example.invalid',message:'Two dozen cupcakes for a birthday.',cupcake_selected:true,cupcake_quantity:24,cupcake_topping:'Buttercream',event_date:new Date(Date.now()+2*86400000).toISOString().slice(0,10),event_time:'10:00:00',status:'Design Confirmed',created_at:new Date().toISOString()});
  demoOrders.push({id:4,order_number:'DEMO004',name:'Demo customer',email:' CUSTOMER@example.invalid ',message:'Previous celebration cake.',status:'Collected',created_at:new Date(Date.now()-30*86400000).toISOString()},{id:5,order_number:'DEMO005',name:'Sample walk-in enquiry',email:'',phone_number:'',message:'No contact details recorded in this sample.',status:'Quote Requested',created_at:new Date().toISOString()});
  const inbox = [{id:'demo-1',subject:'Inspiration for my celebration cake',from:'Customer <customer@example.invalid>',date:new Date().toISOString(),text:'Hello Felicia, could we discuss a pink cake for Saturday? This is a sample message, not a real email.'}];
  function session(req) {
-  const token=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('fb_session='))?.slice(11);
-  const entry=sessions.get(token);
-  if (!entry || entry.expires<Date.now()) {sessions.delete(token);return null;} return {token,...entry};
+  const raw=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('fb_session='));
+  const sessionKey=raw?decodeURIComponent(raw.slice('fb_session='.length)):'';
+  const entry=sessions.get(sessionKey);
+  if (!entry || entry.expires<Date.now()) {sessions.delete(sessionKey);return null;} return {token:sessionKey,...entry};
  }
  const cleanup=setInterval(()=>{for(const [k,v] of sessions)if(v.expires<Date.now())sessions.delete(k);for(const [k,v] of attempts)if(v.until<Date.now())attempts.delete(k);},60000);cleanup.unref();
  app.use('/admin', (req,res,next)=>{
@@ -39,10 +41,10 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   const configuredName=role==='owner'?env.STAFF_OWNER_NAME:env.STAFF_DEVELOPER_NAME;
   const displayName=String(configuredName||(email==='info@feliciabakes.co.za'?'Felicia':email==='dev@feliciabakes.co.za'?'Vinolia':email.split('@')[0])).trim().slice(0,80)||email.split('@')[0];
   const token=crypto.randomBytes(32).toString('hex');sessions.set(token,{expires:Date.now()+8*3600000,user:{email,role,displayName}});attempts.delete(key);
-  res.cookie('fb_session',token,{httpOnly:true,secure:env.NODE_ENV==='production',sameSite:'strict',path:'/admin',maxAge:8*3600000});res.json({ok:true});
+  res.cookie('fb_session',token,{httpOnly:true,secure:secureCookie,sameSite:'strict',path:'/',maxAge:8*3600000});res.json({ok:true});
  });
  app.use('/admin/api',(req,res,next)=>{if(!session(req))return res.status(401).json({message:'Please sign in.'});next();});
- app.post('/admin/api/logout',(req,res)=>{sessions.delete(session(req)?.token);res.clearCookie('fb_session',{path:'/admin'});res.json({ok:true});});
+ app.post('/admin/api/logout',(req,res)=>{sessions.delete(session(req)?.token);res.clearCookie('fb_session',{path:'/',sameSite:'strict'});res.json({ok:true});});
  const safe=fn=>(req,res)=>Promise.resolve(fn(req,res)).catch(()=>res.status(502).json({message:'Could not complete this request. Please try again.'}));
  require('./content-planner').installPlanner(app,pool,{demo,showcase:env.DASHBOARD_DEMO_SHOWCASE==='true',authorize:session});
  const newsletter=require('./newsletter').installNewsletter(app,pool,{env,demo,authorize:session});

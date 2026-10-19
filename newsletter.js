@@ -1,13 +1,13 @@
 const crypto=require('node:crypto');const {emailKey}=require('./business');const {validDate,localDay}=require('./finance');
 function audience(subscriptions){return subscriptions.filter(s=>s.status==='opted-in'&&emailKey(s.email)).map(s=>({email:emailKey(s.email),consentSource:s.consent_source,consentDate:s.consent_at}));}
-function deliveryReadiness(){return {provider:'brevo',sendingAvailable:false,contactSyncAvailable:false,optOutSyncAvailable:false,code:'NEWSLETTER_PROVIDER_SYNC_INCOMPLETE',blockers:['Dedicated Felicia list and sender must be verified.','Explicit local consent must be reconciled with provider membership and suppressions.','Provider unsubscribe events must update local consent; local opt-outs must suppress provider delivery.']};}
+function deliveryReadiness(env=process.env){const configured=Boolean(env.MAILBOX_ADDRESS&&(env.MAILBOX_PASSWORD||env.MAILBOX_PASSWORD_B64)&&((env.BREVO_API_KEY||env.BREVO_API_KEY_B64)&&env.MAIL_SEND_ENABLED==='true'&&env.MAIL_SEND_TRANSPORT==='brevo'));return {provider:'brevo',sendingAvailable:configured&&env.BREVO_FREE_SENDING_CONFIRMED==='true',contactSyncAvailable:configured,optOutSyncAvailable:configured,code:configured?'NEWSLETTER_PROVIDER_READY':'NEWSLETTER_PROVIDER_SYNC_INCOMPLETE',blockers:configured?[]:['Dedicated Felicia list and sender must be verified.','Explicit local consent must be reconciled with provider membership and suppressions.','Provider unsubscribe events must update local consent; local opt-outs must suppress provider delivery.']};}
 function installNewsletter(app,pool,{env=process.env,demo=false,authorize}={}){
  const subscriptions=new Map(),drafts=new Map();
  const safe=fn=>(req,res)=>Promise.resolve(fn(req,res)).catch(e=>res.status(e.code==='42P01'?503:502).json({message:e.code==='42P01'?'Newsletter database setup has not been applied. Nothing was sent.':'Could not complete this request. Nothing was sent.'}));
  const owner=(req,res,next)=>authorize(req)?.user?.role==='owner'?next():res.status(403).json({message:'Newsletter tools are available to the bakery owner.'});
  app.use('/admin/api/newsletter',owner);
  async function readSubscriptions(){return demo?[...subscriptions.values()]:(await pool.query('SELECT * FROM newsletter_subscriptions')).rows;}
- app.get('/admin/api/newsletter/audience',safe(async(req,res)=>{const list=await readSubscriptions();res.json({recipients:audience(list),optedOut:list.filter(s=>s.status==='opted-out').length,sendingAvailable:false,demo});}));
+ app.get('/admin/api/newsletter/audience',safe(async(req,res)=>{const readiness=deliveryReadiness(env);const list=await readSubscriptions();res.json({recipients:audience(list),optedOut:list.filter(s=>s.status==='opted-out').length,sendingAvailable:readiness.sendingAvailable,demo});}));
  app.post('/admin/api/newsletter/consent',safe(async(req,res)=>{
   const email=emailKey(req.body.email),status=req.body.status,source=String(req.body.source||'').trim(),date=req.body.date;
   if(!email||!['opted-in','opted-out','unknown'].includes(status))return res.status(400).json({message:'Choose a valid customer email and consent status.'});
