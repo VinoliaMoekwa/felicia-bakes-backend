@@ -1,14 +1,15 @@
 const {randomUUID}=require('node:crypto');
+const {renderOutgoingEmail,BRAND}=require('./outgoing-email-template');
 const BASE='https://api.brevo.com/v3';
 function createBrevo(env=process.env,{send=fetch}={}){
  const apiKey=env.BREVO_API_KEY||(env.BREVO_API_KEY_B64?Buffer.from(env.BREVO_API_KEY_B64,'base64').toString('utf8'):'');
  if(!apiKey)throw Error('A private Brevo API key is required.');
  async function request(path,body){const response=await send(BASE+path,{method:'POST',headers:{'api-key':apiKey,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});if(!response.ok){const error=Error(response.status===429?'Brevo sending or rate limit reached. Nothing was retried.':'Brevo did not accept this request. Check sender setup and allowance.');error.code=response.status===429?'EMAIL_LIMIT':'EMAIL_PROVIDER';throw error;}return response.json();}
  return {
-  async send({from,to,subject,text,thread={},attachments=[],requestId}){
+  async send({from,to,subject,text,html,thread={},attachments=[],requestId}){
    // A single customer conversation. Newsletter campaigns use the separate marketing API.
    const headers={idempotencyKey:requestId||randomUUID(),...(thread.inReplyTo?{'In-Reply-To':thread.inReplyTo}:{}),...(thread.references?{References:thread.references}:{})};
-   const result=await request('/smtp/email',{sender:{name:'Felicia Bakes',email:from},to:[{email:to}],replyTo:{email:from},subject,textContent:text,headers,tags:['felicia-bakes-dashboard'],...(attachments.length?{attachment:attachments.map(a=>({name:a.filename,content:a.content.toString('base64')}))}:{})});
+   const result=await request('/smtp/email',{sender:{name:'Felicia Bakes',email:from},to:[{email:to}],replyTo:{email:BRAND.replyTo},subject,textContent:text,htmlContent:html||renderOutgoingEmail({subject,text,reply:!!thread.inReplyTo}).html,headers,tags:['felicia-bakes-dashboard'],...(attachments.length?{attachment:attachments.map(a=>({name:a.filename,content:a.content.toString('base64')}))}:{})});
    const messageId=typeof result.messageId==='string'&&/^<[^<>\r\n]+@[^<>\r\n]+>$/.test(result.messageId)?result.messageId:null;
    return {accepted:true,messageId};
   },

@@ -1,5 +1,6 @@
 // Domains.co.za adapter. No connection occurs until explicitly enabled.
 const { randomUUID } = require('node:crypto');
+const { renderOutgoingEmail } = require('./outgoing-email-template');
 const MAX_SOURCE = 20 * 1024 * 1024;
 const MAX_ATTACHMENTS = 8 * 1024 * 1024;
 function cleanFilename(name) {
@@ -116,13 +117,14 @@ function createMailbox(env = process.env, injected = {}) {
      if (!envelope) throw Error('The original message is no longer available.');
      if (envelope.messageId) thread={ inReplyTo:envelope.messageId,references:envelope.messageId };
     }
+    const branded=renderOutgoingEmail({subject,text,reply:!!replyId});
     const messageId=`<${randomUUID()}@${env.MAILBOX_ADDRESS.split('@')[1]}>`;
     const builder=nodemailer.createTransport({streamTransport:true,buffer:true,newline:'windows',disableFileAccess:true,disableUrlAccess:true});
-    const compiled=await builder.sendMail({from:env.MAILBOX_ADDRESS,to,subject,text,messageId,...thread,attachments:files,disableFileAccess:true,disableUrlAccess:true});
+    const compiled=await builder.sendMail({from:env.MAILBOX_ADDRESS,replyTo:branded.replyTo,to,subject,text,html:branded.html,messageId,...thread,attachments:files,disableFileAccess:true,disableUrlAccess:true});
     if (!Buffer.isBuffer(compiled.message)) throw Error('Email could not be prepared.');
     let sentContent=compiled.message,deliveryMessageId=compiled.messageId||messageId;
     if(brevo){
-     const result=await brevo.send({from:env.MAILBOX_ADDRESS,to,subject,text,thread,attachments:files,requestId});
+     const result=await brevo.send({from:env.MAILBOX_ADDRESS,to,subject,text,html:branded.html,thread,attachments:files,requestId});
      if(!result.accepted)throw Error('Email was not accepted by Brevo.');
      if(!result.messageId)return {messageId:null,sentCopySaved:false,warning:'Brevo accepted the email, but its Message-ID was not confirmed. The Sent copy was not saved; do not resend automatically.'};
      // The provider assigns the delivery Message-ID. Match it in the IMAP Sent representation.
