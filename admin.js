@@ -36,7 +36,9 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   if(!expected||!crypto.timingSafeEqual(crypto.createHash('sha256').update(given).digest(),crypto.createHash('sha256').update(expected).digest())){state.count++;attempts.set(key,state);return res.status(401).json({message:'The admin password is incorrect.'});}
   if(sessions.size>=1000)return res.status(503).json({message:'Please try again later.'});
   const old=session(req);if(old)sessions.delete(old.token);
-  const token=crypto.randomBytes(32).toString('hex');sessions.set(token,{expires:Date.now()+8*3600000,user:{email,role}});attempts.delete(key);
+  const configuredName=role==='owner'?env.STAFF_OWNER_NAME:env.STAFF_DEVELOPER_NAME;
+  const displayName=String(configuredName||(email==='info@feliciabakes.co.za'?'Felicia':email==='dev@feliciabakes.co.za'?'Vinolia':email.split('@')[0])).trim().slice(0,80)||email.split('@')[0];
+  const token=crypto.randomBytes(32).toString('hex');sessions.set(token,{expires:Date.now()+8*3600000,user:{email,role,displayName}});attempts.delete(key);
   res.cookie('fb_session',token,{httpOnly:true,secure:env.NODE_ENV==='production',sameSite:'strict',path:'/admin',maxAge:8*3600000});res.json({ok:true});
  });
  app.use('/admin/api',(req,res,next)=>{if(!session(req))return res.status(401).json({message:'Please sign in.'});next();});
