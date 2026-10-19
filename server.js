@@ -1,3 +1,8 @@
+const fs = require("node:fs");
+// Render secret file is provisioned privately, never committed to Git.
+if (process.env.RENDER && fs.existsSync("/etc/secrets/felicia-dashboard.env")) {
+  process.loadEnvFile("/etc/secrets/felicia-dashboard.env");
+}
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
