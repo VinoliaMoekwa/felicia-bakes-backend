@@ -3,11 +3,22 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "demo": "node demo.js",
+    "test": "node --test test/*.test.js",
+    "mail:setup": "python3 secure-mail-setup.py",
+    "mail:verify": "node --env-file=.env.mail.local mail-check.js --verify-auth"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "imapflow": "2.5.6",
+    "mailparser": "3.9.46",
+    "nodemailer": "10.1.7",
+    "html-to-text": "10.0.1"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

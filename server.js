@@ -2,18 +2,23 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 
+function createApp({ pool: suppliedPool, env = process.env, mail = null } = {}) {
 const app = express();
-const PORT = process.env.PORT || 3000;
+if(env.RENDER)app.set("trust proxy",1);
+const PORT = env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+const jsonBody=express.json();app.use((req,res,next)=>req.path==='/admin/api/mail/send'?next():jsonBody(req,res,next));
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes("localhost")
+const pool = suppliedPool || new Pool({
+  connectionString: env.DATABASE_URL,
+  ssl: env.DATABASE_URL?.includes("localhost")
     ? false
     : { rejectUnauthorized: false }
 });
+
+const { updateOrderStatus } = require("./order-status");
+const admin = require("./admin").installAdmin(app, pool, { env, mail, updateOrder: (number, status) => updateOrderStatus(pool, number, status) });
 
 /* Root */
 app.get("/", (req, res) => {
@@ -163,7 +168,7 @@ app.patch("/orders/:orderNumber/status", async (req, res) => {
   try {
     const adminToken = req.headers["x-admin-token"];
 
-    if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
+    if (!adminToken || adminToken !== env.ADMIN_TOKEN) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
@@ -182,19 +187,8 @@ app.patch("/orders/:orderNumber/status", async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const result = await pool.query(
-      `UPDATE orders
-       SET status = $1
-       WHERE LOWER(order_number) = LOWER($2)
-       RETURNING *`,
-      [status, req.params.orderNumber]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    const order = result.rows[0];
+    const order = await updateOrderStatus(pool, req.params.orderNumber, status);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
     res.json({
       message: "Order status updated",
@@ -209,7 +203,11 @@ app.patch("/orders/:orderNumber/status", async (req, res) => {
   }
 });
 
-/* Start Server */
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+return { app, close: admin.close, pool };
+}
+if (require.main === module) {
+ const { app } = createApp({ mail: require("./mailbox").createMailbox() });
+ const PORT = process.env.PORT || 3000;
+ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+module.exports={createApp};

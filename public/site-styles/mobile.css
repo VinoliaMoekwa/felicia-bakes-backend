@@ -1,0 +1,770 @@
+/* ============================= */
+/* MOBILE STYLES */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+  /* ================= Container ================= */
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .container {
+    width: 100%;
+    padding: 0 16px;
+  }
+
+  /* ================= Header ================= */
+
+  .header {
+    background: #fff;
+    position: sticky;
+    z-index: 1000;
+  }
+
+  .header-top {
+    background: #fff;
+    border-bottom: 1px solid #f3dce5;
+    min-height: 64px;
+    padding: 10px 16px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .logo img {
+    width: 72px;
+    height: auto;
+  }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+
+    width: 24px;
+    height: 24px;
+
+    position: absolute;
+    left: 16px;
+    top: 20px;
+
+    z-index: 1200;
+    cursor: pointer;
+  }
+
+  .hamburger span {
+    width: 20px;
+    height: 2px;
+    background: #ff6098;
+    border-radius: 2px;
+  }
+
+  .navigation {
+    display: none;
+
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+
+    background: #fff;
+
+    padding: 0 16px 12px;
+
+    border-top: 1px solid #f3dce5;
+    box-shadow: 0 8px 18px rgba(0,0,0,.08);
+
+    z-index: 1100;
+  }
+
+  .navigation.show {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .navigation .nav-link {
+    display: block;
+    padding: 14px 0;
+
+    border-bottom: 1px solid #f3dce5;
+
+    color: #d63384;
+    text-decoration: none;
+  }
+
+  .social-icons {
+    display: none;
+  }
+
+  /* ================= Hero ================= */
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+
+    gap: 24px;
+
+    text-align: center;
+
+    padding: 40px 20px;
+  }
+
+  .hero-content {
+    align-items: center;
+  }
+
+  .hero-image img {
+    width: 200px;
+    height: auto;
+    transform: none;
+  }
+
+  .brand-name {
+    font-size: 28px;
+  }
+
+  .tagline {
+    font-size: 14px;
+  }
+
+  /* ================= Section Titles ================= */
+
+  .testimonial-title,
+  .treats-title,
+  .cake-title,
+  .about-title {
+    font-size: 1.6rem;
+    text-align: center;
+  }
+
+  /* ================= Cake Slider ================= */
+
+  .cake-slider {
+    width: 100%;
+    padding: 3rem 1rem;
+  }
+
+  .swiper-slide {
+    padding: 1rem 0;
+  }
+
+  .cake-card {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0;
+
+    min-height: 0;
+    height: auto;
+  }
+
+  .cake-image {
+    width: 100%;
+    height: clamp(220px, 65vw, 300px);
+
+    flex-shrink: 0;
+
+    overflow: hidden;
+  }
+
+  .cake-image img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+    object-position: center;
+
+    border-radius: 30px 30px 0 0;
+  }
+
+  .cake-content {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 1.5rem;
+
+    text-align: center;
+  }
+
+  .cake-category {
+    margin-bottom: .4rem;
+  }
+
+  .cake-name {
+    margin: 0 0 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .cake-description {
+    margin-bottom: 1.5rem;
+  }
+
+  .cake-features {
+    margin-bottom: 1.5rem;
+  }
+
+  .cake-btn {
+    align-self: center;
+    margin-top: auto;
+  }
+
+    /* ================= Mini Treats ================= */
+
+  .mini-treats-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .treat-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 1.5rem;
+  }
+
+  .treat-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+  }
+
+  .treat-category {
+    margin-top: 1rem;
+    margin-bottom: .4rem;
+
+    font-size: .72rem;
+
+    text-align: center;
+  }
+
+  .treat-card h3 {
+    font-size: 1.5rem;
+    margin: .4rem 0;
+
+    text-align: center;
+  }
+
+  .treat-divider {
+    margin: .8rem 0;
+  }
+
+  .treat-card p {
+    font-size: .95rem;
+    line-height: 1.7;
+
+    text-align: center;
+  }
+
+  /* ================= Testimonials ================= */
+
+  .testimonial-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .testimonial-card {
+    width: 100%;
+    max-width: 400px;
+  }
+
+
+.testimonial-card::before{
+
+    top:-18px;
+    left:20px;
+
+    font-size:4.5rem;
+
+}
+
+.testimonial-grid{
+
+    gap:3rem;
+
+}
+  /* ================= About ================= */
+
+  .about-text {
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .pricing-intro,
+  .pricing-content-container,
+  .pricing-note {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .pricing-layout,
+  .pricing-content,
+  .pricing-image,
+  .price-row {
+    min-width: 0;
+  }
+
+  .price-row span:first-child {
+    white-space: normal;
+  }
+
+  .order-journey,
+  .current-status-card {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  .journey-timeline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 1rem;
+  }
+
+  .timeline-step {
+    min-width: 0;
+  }
+
+  .step-circle,
+  .timeline-step.active .step-circle {
+    width: 72px;
+    height: 72px;
+    font-size: 2rem;
+    transform: none;
+  }
+
+  .current-status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+  }
+
+  .status-icon {
+    width: 80px;
+    height: 80px;
+    font-size: 2.25rem;
+  }
+
+  .status-content h3 {
+    font-size: 1.75rem;
+  }
+
+  /* ================= Forms ================= */
+
+  .form-page {
+    padding: 20px 16px 40px;
+  }
+
+  .form-intro {
+    margin: 12px 0 18px;
+    text-align: center;
+  }
+
+  .form-section {
+    background: #fff;
+    padding: 20px 16px;
+
+    border-radius: 14px;
+
+    box-shadow: 0 4px 10px rgba(0,0,0,.05);
+  }
+
+  .form-section + .form-section {
+    margin-top: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    width: 100%;
+    padding: 12px;
+
+    border: 1px solid #ddd;
+    border-radius: 8px;
+
+    box-sizing: border-box;
+  }
+
+  .date-time-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .contact-intro h2 {
+    text-align: center;
+  }
+
+  .disclaimer-card {
+    background: #fff3f7;
+    border: 1px solid #f2bfd1;
+  }
+
+  .disclaimer-card p {
+    margin: 0;
+    text-align: center;
+  }
+
+  .contact-summary-text {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #ff6098;
+    color: #fff;
+  }
+
+  /* ================= Footer ================= */
+
+  .footer {
+    padding: 40px 20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    text-align: center;
+  }
+
+  .footer-icons {
+    justify-content: center;
+  }
+
+  .footer p {
+    margin-top: 0;
+  }
+
+}
+
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width:768px){
+
+.pricing-intro{
+
+    padding:4rem 1.5rem;
+
+}
+
+.pricing-title{
+
+    font-size:2.4rem;
+
+}
+
+.pricing-tagline{
+
+    font-size:1.25rem;
+
+}
+
+.pricing-content-container{
+
+    padding:4rem 1.5rem;
+
+}
+
+.pricing-layout{
+
+    grid-template-columns:1fr;
+
+    gap:2.5rem;
+
+}
+
+.pricing-layout.reverse .pricing-content,
+.pricing-layout.reverse .pricing-image{
+
+    order:unset;
+
+}
+
+.pricing-image img{
+
+    height:300px;
+
+}
+
+.pricing-content{
+
+    text-align:center;
+
+}
+
+.pricing-divider{
+
+    margin:1.5rem auto 2rem;
+
+}
+
+.pricing-content h2{
+
+    font-size:2.2rem;
+
+}
+
+.price-row{
+
+    font-size:.95rem;
+
+}
+
+/* ==========================================
+   TRACKING PAGE
+========================================== */
+
+.order-search-card{
+    padding:1.5rem;
+    border-radius:20px;
+}
+
+.order-search-card input{
+    width:100%;
+}
+
+.track-btn{
+    width:100%;
+}
+
+.order-result{
+    padding:1.5rem;
+    border-radius:18px;
+}
+
+.order-result h3{
+    font-size:1.6rem;
+}
+
+.status-pill{
+    padding:.9rem 1.8rem;
+    font-size:1.1rem;
+}
+
+
+/* ================= Journey ================= */
+
+.order-journey{
+
+    background:#fff;
+
+    border-radius:24px;
+
+    padding:2rem 1.25rem;
+
+    margin-top:2rem;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+
+}
+
+.order-journey h2{
+
+    font-size:2.2rem;
+
+    text-align:center;
+
+    margin-bottom:2rem;
+
+}
+
+.journey-timeline{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:2rem 1rem;
+
+    justify-items:center;
+
+}
+
+.timeline-step{
+
+    width:100%;
+
+    text-align:center;
+
+}
+
+.step-circle{
+
+    width:80px;
+
+    height:80px;
+
+    margin:0 auto 12px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:2rem;
+
+}
+
+.timeline-step.completed .step-circle{
+
+    background:#FFE8F0;
+
+    border:2px solid #F65B9A;
+
+}
+
+.timeline-step.active .step-circle{
+
+    width:95px;
+
+    height:95px;
+
+    font-size:2.5rem;
+
+    background:#FFF7EA;
+
+    border:3px solid #D4AF37;
+
+    box-shadow:0 0 25px rgba(212,175,55,.25);
+
+    transform:none;
+
+}
+
+.timeline-step p{
+
+    font-size:.95rem;
+
+    line-height:1.4;
+
+    font-weight:600;
+
+    color:#5F4B66;
+
+}
+
+
+/* ================= Current Status ================= */
+
+.current-status-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    text-align:center;
+
+    gap:1.5rem;
+
+    background:#fff;
+
+    border-radius:24px;
+
+    padding:2rem 1.5rem;
+
+    margin-top:2rem;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+
+}
+
+.status-icon{
+
+    width:90px;
+
+    height:90px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:2.5rem;
+
+    flex-shrink:0;
+
+}
+
+.status-label{
+
+    display:block;
+
+    font-size:.85rem;
+
+    letter-spacing:3px;
+
+    margin-bottom:.8rem;
+
+}
+
+.status-content h3{
+
+    font-size:2.2rem;
+
+    margin-bottom:1rem;
+
+}
+
+.status-content p{
+
+    font-size:1rem;
+
+    line-height:1.8;
+
+    margin-bottom:1.25rem;
+
+}
+
+.status-message{
+
+    padding:1rem;
+
+    border-radius:16px;
+
+    font-size:.95rem;
+
+}
+
+}

@@ -1,0 +1,432 @@
+/* ================= MEDIUM / TABLET VIEW ================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    /* ================= Container ================= */
+
+    .container{
+        width:100%;
+        max-width:1000px;
+    }
+
+    section{
+        padding:4rem 2rem;
+    }
+
+    /* ================= Header ================= */
+
+    .header-top{
+        grid-template-columns:auto 1fr auto;
+        gap:16px;
+        min-height:90px;
+        padding:0 24px;
+    }
+
+    .logo img{
+        width:90px;
+        height:auto;
+    }
+
+    .navigation{
+        width:auto;
+        padding:0;
+        gap:18px;
+        background:transparent;
+        border-radius:0;
+        box-shadow:none;
+    }
+
+    .nav-link{
+        font-size:14px;
+        color:#eb1761;
+    }
+
+    .social-icons{
+        display:none;
+    }
+
+    /* ================= Hero ================= */
+
+    .hero{
+        height:380px;
+        gap:30px;
+        padding:0 30px;
+    }
+
+    .brand-name{
+        font-size:30px;
+    }
+
+    .tagline{
+        font-size:14px;
+    }
+
+    .hero-image img{
+        width:220px;
+        height:260px;
+        transform:rotate(-90deg);
+    }
+
+    .cta-button{
+        display:inline-block;
+        text-decoration:none;
+        padding:10px 20px;
+        font-size:13px;
+    }
+
+    /* ================= Section Titles ================= */
+
+    .testimonial-title,
+    .treats-title,
+    .cake-title,
+    .about-title{
+        font-size:1.8rem;
+        text-align:center;
+        margin-bottom:1rem;
+    }
+
+    /* ================= Cake Slider ================= */
+
+    .cake-slider{
+        max-width:900px;
+    }
+
+    .cake-card{
+        max-width:850px;
+        min-height:500px;
+
+        gap:2rem;
+        margin:auto;
+        min-width:0;
+    }
+
+    .cake-image{
+        flex:0 0 320px;
+        height:500px;
+    }
+
+    .cake-image img{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        object-position:center;
+    }
+
+    
+    .cake-content{
+        height:420px;
+
+        padding:2rem;
+
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+
+        text-align:center;
+        min-width:0;
+    }
+
+    .cake-content h3{
+        font-size:2.2rem;
+        line-height:1.25;
+    }
+
+    .swiper-button-next,
+    .swiper-button-prev{
+        width:42px;
+        height:42px;
+    }
+
+    .swiper-button-next::after,
+    .swiper-button-prev::after{
+        font-size:16px;
+    }
+
+    /* ================= Mini Treats ================= */
+
+    .mini-treats-grid{
+        grid-template-columns:repeat(3,1fr);
+        gap:30px;
+        max-width:950px;
+    }
+
+    .treat-card{
+        padding:2rem;
+    }
+
+    .treat-card img{
+        height:180px;
+    }
+
+    .treat-category{
+        margin-top:1.25rem;
+        font-size:.75rem;
+    }
+
+    .treat-card h3{
+        font-size:1.6rem;
+    }
+
+    .treat-divider{
+        margin:1rem 0;
+    }
+
+    /* ================= Testimonials ================= */
+
+    .testimonial-grid{
+        grid-template-columns:repeat(3,1fr);
+        gap:30px;
+        max-width:950px;
+    }
+
+    .testimonial-card{
+        padding:18px;
+        font-size:14px;
+    }
+
+    /* ================= About ================= */
+
+    .about-text{
+        max-width:600px;
+        font-size:15px;
+    }
+
+    /* ================= Footer ================= */
+
+    .footer{
+        padding:30px 40px;
+    }
+
+    .footer__logo img{
+        width:120px;
+    }
+
+    .footer-icons i{
+        font-size:20px;
+    }
+
+    /* ==========================================
+   TRACKING PAGE
+========================================== */
+
+.order-search-card{
+    padding:1.5rem;
+    border-radius:20px;
+}
+
+.order-search-card input{
+    width:100%;
+}
+
+.track-btn{
+    width:100%;
+}
+
+.order-result{
+    padding:1.5rem;
+    border-radius:18px;
+}
+
+.order-result h3{
+    font-size:1.6rem;
+}
+
+.status-pill{
+    padding:.9rem 1.8rem;
+    font-size:1.1rem;
+}
+
+
+/* ================= Journey ================= */
+
+.order-journey{
+
+    background:#fff;
+
+    border-radius:24px;
+
+    padding:2rem 1.25rem;
+
+    margin-top:2rem;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+
+}
+
+.order-journey h2{
+
+    font-size:2.2rem;
+
+    text-align:center;
+
+    margin-bottom:2rem;
+
+}
+
+.journey-timeline{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:2rem 1rem;
+
+    justify-items:center;
+
+}
+
+.timeline-step{
+
+    width:100%;
+
+    text-align:center;
+
+}
+
+.step-circle{
+
+    width:80px;
+
+    height:80px;
+
+    margin:0 auto 12px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:2rem;
+
+}
+
+.timeline-step.completed .step-circle{
+
+    background:#FFE8F0;
+
+    border:2px solid #F65B9A;
+
+}
+
+.timeline-step.active .step-circle{
+
+    width:95px;
+
+    height:95px;
+
+    font-size:2.5rem;
+
+    background:#FFF7EA;
+
+    border:3px solid #D4AF37;
+
+    box-shadow:0 0 25px rgba(212,175,55,.25);
+
+    transform:none;
+
+}
+
+.timeline-step p{
+
+    font-size:.95rem;
+
+    line-height:1.4;
+
+    font-weight:600;
+
+    color:#5F4B66;
+
+}
+
+
+/* ================= Current Status ================= */
+
+.current-status-card{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    text-align:center;
+
+    gap:1.5rem;
+
+    background:#fff;
+
+    border-radius:24px;
+
+    padding:2rem 1.5rem;
+
+    margin-top:2rem;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+
+}
+
+.status-icon{
+
+    width:90px;
+
+    height:90px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:2.5rem;
+
+    flex-shrink:0;
+
+}
+
+.status-label{
+
+    display:block;
+
+    font-size:.85rem;
+
+    letter-spacing:3px;
+
+    margin-bottom:.8rem;
+
+}
+
+.status-content h3{
+
+    font-size:2.2rem;
+
+    margin-bottom:1rem;
+
+}
+
+.status-content p{
+
+    font-size:1rem;
+
+    line-height:1.8;
+
+    margin-bottom:1.25rem;
+
+}
+
+.status-message{
+
+    padding:1rem;
+
+    border-radius:16px;
+
+    font-size:.95rem;
+
+}
+
+}
