@@ -430,6 +430,28 @@ textarea:focus-visible {
   .order-row {
     grid-template-columns: 1fr;
   }
+  dialog form,
+  .order-finances form,
+  #newsletterForm,
+  #postForm,
+  .status-form,
+  .filters,
+  .customer-filters,
+  .period-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  dialog form > *,
+  .order-finances form > *,
+  #newsletterForm > *,
+  #postForm > *,
+  .status-form > *,
+  .filters > *,
+  .customer-filters > *,
+  .period-filters > * {
+    width: 100%;
+  }
   .pill {
     justify-self: start;
   }
