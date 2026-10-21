@@ -8,7 +8,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const { sendOrderEmail } = require("./order-email");
 
-function createApp({ pool: suppliedPool, env = process.env, mail = null } = {}) {
+function createApp({ pool: suppliedPool, env = process.env, mail = null, notifyOrder = sendOrderEmail } = {}) {
 const app = express();
 if(env.RENDER)app.set("trust proxy",1);
 const PORT = env.PORT || 3000;
@@ -34,92 +34,21 @@ app.get("/", (req, res) => {
 /* Create Order */
 app.post("/orders", async (req, res) => {
   try {
-    const countResult = await pool.query("SELECT COUNT(*) FROM orders");
-    const nextNumber = Number(countResult.rows[0].count) + 1;
-    const orderNumber = "FB" + String(nextNumber).padStart(3, "0");
-
-    const {
-      name,
-      email,
-      phoneNumber,
-      cakeSelected,
-      cupcakeSelected,
-      flavour,
-      filling,
-      cakeSize,
-      designType,
-      cupcakeTopping,
-      cupcakeQuantity,
-      colorScheme,
-      message,
-      dietary,
-      occasion,
-      eventDate,
-      eventTime,
-      totalPrice
-    } = req.body;
-
-    const result = await pool.query(
-      `INSERT INTO orders (
-        order_number,
-        name,
-        email,
-        phone_number,
-        cake_selected,
-        cupcake_selected,
-        flavour,
-        filling,
-        cake_size,
-        design_type,
-        cupcake_topping,
-        cupcake_quantity,
-        color_scheme,
-        message,
-        dietary,
-        occasion,
-        event_date,
-        event_time,
-        total_price,
-        status
-      ) VALUES (
-        $1,$2,$3,$4,$5,
-        $6,$7,$8,$9,$10,
-        $11,$12,$13,$14,$15,
-        $16,$17,$18,$19,$20
-      )
-      RETURNING *`,
-      [
-        orderNumber,
-        name,
-        email,
-        phoneNumber || null,
-        !!cakeSelected,
-        !!cupcakeSelected,
-        flavour || null,
-        filling || null,
-        cakeSize || null,
-        designType || null,
-        cupcakeTopping || null,
-        Number(cupcakeQuantity || 0),
-        colorScheme || null,
-        message || null,
-        dietary || null,
-        occasion || null,
-        eventDate || null,
-        eventTime || null,
-        totalPrice || 0,
-        "Quote Requested"
-      ]
-    );
-
-    const order = result.rows[0];
-    const notification = await sendOrderEmail(order);
-    if (notification.status !== "sent") {
-      console.warn("Order email notification:", notification.status, notification.code || "");
+    const {order,created} = await require('./create-quote').createQuote(pool,req.body);
+    let notification = {status:'not-resent'};
+    if (created) {
+      // The quote is already committed. Delivery failure must not turn a saved
+      // request into an apparent creation failure that invites another order.
+      try { notification = await notifyOrder(order,{env}); }
+      catch { notification = {status:'failed'}; }
+      if (notification.status !== 'sent') {
+        console.warn('Order email notification:',notification.status,notification.code||'');
+      }
     }
 
     res.json({
       emailNotification: notification.status,
+      duplicate: !created,
       orderNumber: order.order_number,
       name: order.name,
       email: order.email,
@@ -143,7 +72,7 @@ app.post("/orders", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Create order error:", error);
+    console.error("Create order error:", error.code || "request-failed");
     res.status(500).json({
       message: "Failed to create order"
     });
