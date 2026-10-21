@@ -1,6 +1,9 @@
 const test=require('node:test');const assert=require('node:assert/strict');const {createApp}=require('../server');
+const {sessionStoreDouble}=require('./session-store-double');
 test('original create → dashboard read/update → original customer tracking share one order store',async()=>{
+ const sessionStore=sessionStoreDouble();
  const rows=[];const pool={async query(sql,args=[]){
+  const sessionResult=sessionStore.query(sql,args);if(sessionResult)return sessionResult;
   if(sql.includes('FROM staff_credentials'))return {rows:[]};
   if(sql.includes('COUNT(*)'))return {rows:[{count:String(rows.length)}]};
   if(sql.includes('INSERT INTO orders')){const columns=sql.match(/INSERT INTO orders\s*\(([\s\S]+?)\)\s*VALUES/)[1].split(',').map(x=>x.trim());const order={id:rows.length+1,created_at:new Date().toISOString()};columns.forEach((k,i)=>order[k]=args[i]);rows.push(order);return {rows:[{...order}]};}

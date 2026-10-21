@@ -27,7 +27,7 @@ Password requests run as after-response work, not a durable job queue. Server te
 
 ## Rollback and recovery
 
-Turning `STAFF_RECOVERY_ENABLED=false` disables recovery email and reset submissions; it **does not** disable reading existing stored hashes during login. Keep `staff_credentials` intact once a reset has been used. Do not roll back to older authentication code after a password reset: older versions ignore stored hashes and may accept obsolete environment passwords. Forward-fix authentication changes and retain the table. Sessions continue to reset on process restart as before.
+Turning `STAFF_RECOVERY_ENABLED=false` disables recovery email and reset submissions; it **does not** disable reading existing stored hashes during login. Keep `staff_credentials` intact once a reset has been used. Do not roll back to older authentication code after a password reset: older versions ignore stored hashes and may accept obsolete environment passwords. Forward-fix authentication changes and retain the table. Staff sessions now persist across restarts after applying `staff-sessions-schema.sql`. They expire 30 days after sign-in and are invalidated on password reset by the persisted credential version.
 
 Do not delete a credential row to restore a forgotten password. Use a fresh emailed token or an administrator-led ownership recovery process. Changing the configured staff email is a separate security-sensitive operation requiring review; outstanding tokens for an old configured email cannot reset a new identity.
 
