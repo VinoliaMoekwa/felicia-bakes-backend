@@ -6,7 +6,7 @@ Business schema additions are in `business-schema.sql`. Apply once before activa
 
 Use Node >=20.19, `npm ci`, `npm test`, then `npm start`. Set secrets privately on the host using `.env.example` as a variable-name reference. Never publish `.env` files. `secure-mail-setup.py` and `secure-dashboard-setup.py` are optional local hidden-input helpers; they do not deploy, authenticate or send. Local private files are ignored.
 
-Mailbox uses Domains.co.za IMAP TLS; one-to-one sending uses Brevo HTTPS, so no SMTP access or paid Render tier is required. Verify the existing Brevo free allowance before enabling sending. No automatic customer notifications or social publishing are enabled. Sessions reset on deployment/restart.
+Mailbox uses Domains.co.za IMAP TLS; one-to-one sending uses Brevo HTTPS, so no SMTP access or paid Render tier is required. Verify the existing Brevo free allowance before enabling sending. No automatic customer notifications or social publishing are enabled. Staff sessions persist in PostgreSQL across deployments and restarts, with a fixed 30-day expiry. Logout revokes the current device session; password resets invalidate all sessions for that account. Apply `staff-sessions-schema.sql` before deploying this version. Existing memory-only sessions require one new sign-in. Only token hashes are stored; browser cookies remain HttpOnly, Secure in production, and SameSite Strict. Expired rows are removed on staff sign-in. Demo sessions remain in memory.
 
 `npm run demo` is localhost-only synthetic data and must never be used as the production entry point. Tests use synthetic providers; the explicit disposable PostgreSQL integration script never accepts remote URLs.
 

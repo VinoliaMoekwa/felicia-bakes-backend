@@ -2,18 +2,21 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const express = require('express');
+const {sessionStoreDouble} = require('./session-store-double');
 const {installAdmin} = require('../admin');
 const {createStaffAccounts,hashPassword,verifyPassword,dashboardOrigin} = require('../staff-accounts');
 
 // Persistent-store double shared by independent app instances. Expiry, issuance
 // limits and the single conditional consume are modelled independently of HTTP.
 function database() {
+ const sessions = sessionStoreDouble();
  const rows = new Map(); let now = Date.now(), failure;
  const copy = row => row ? {...row} : null;
  return {
-  rows, advance: ms => {now += ms;}, fail: error => {failure = error;},
+  rows, sessions: sessions.rows, advance: ms => {now += ms;}, fail: error => {failure = error;},
   async query(sql,args=[]) {
    if(failure)throw failure;
+   const sessionResult=sessions.query(sql,args);if(sessionResult)return sessionResult;
    assert(sql.includes('staff_credentials'), 'Recovery must not mutate bakery data');
    if(sql.startsWith('SELECT email, role'))return {rows:rows.has(args[0])?[copy(rows.get(args[0]))]:[]};
    if(sql.startsWith('INSERT INTO')) {
@@ -182,4 +185,37 @@ test('database outage fails closed and persisted passwords remain authoritative 
  const missing={query:async()=>{throw Object.assign(Error('missing'),{code:'42P01'});}};
  assert(await createStaffAccounts(missing,{env}).authenticate('info@feliciabakes.co.za','original owner test password'));
  env.STAFF_RECOVERY_ENABLED='true';await assert.rejects(createStaffAccounts(missing,{env}).authenticate('info@feliciabakes.co.za','original owner test password'));
+});
+
+test('staff sign-in survives app shutdown and reopening, with a 30-day secure cookie',async()=>{
+ const pool=database();let a=await fixture(pool,{NODE_ENV:'production'}),b;
+ try {
+  const response=await a.request('/login',{email:'info@feliciabakes.co.za',password:'original owner test password'});
+  assert.equal(response.status,200);
+  const header=response.headers.get('set-cookie');
+  for(const flag of ['Max-Age=2592000','HttpOnly','Secure','SameSite=Strict'])assert(header.includes(flag));
+  const cookie=header.split(';')[0],token=cookie.slice('fb_session='.length);
+  assert.equal(pool.sessions.size,1);assert(!pool.sessions.has(token));assert(!JSON.stringify([...pool.sessions]).includes(token));
+  await a.close();a=null;b=await fixture(pool);
+  const state=await(await b.request('/session',null,cookie)).json();
+  assert.equal(state.authenticated,true);assert.equal(state.user.displayName,'Felicia');
+  assert.equal((await b.request('/orders',null,cookie.replace(/.$/,'z'))).status,401);
+  assert.equal((await b.request('/logout',{},cookie)).status,200);
+  assert.equal((await(await b.request('/session',null,cookie)).json()).authenticated,false);
+  assert.equal(pool.sessions.size,0);
+ } finally {if(a)await a.close();if(b)await b.close();}
+});
+
+test('persisted session expiry, role changes and database failures cannot grant access',async()=>{
+ const pool=database(),f=await fixture(pool);try {
+  const cookie=await login(f);
+  pool.sessions.values().next().value.expires_at=new Date(Date.now()-1);
+  assert.equal((await f.request('/orders',null,cookie)).status,401);
+  const fresh=await login(f);assert.equal(pool.sessions.size,1);
+  const row=pool.sessions.values().next().value;row.role='developer';
+  assert.equal((await f.request('/mail',null,fresh)).status,401);
+  const valid=await login(f);pool.fail(Error('private database outage'));
+  const response=await f.request('/session',null,valid);
+  assert.equal(response.status,503);assert(!(await response.text()).includes('private database outage'));
+ } finally {await f.close();}
 });

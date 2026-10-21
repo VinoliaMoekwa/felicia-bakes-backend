@@ -6,8 +6,10 @@ const path = require('node:path');
 const STAGES = ['Quote Requested','Deposit Paid','Design Confirmed','Baking','Decorating','Ready for Collection','Collected'];
 
 function installAdmin(app, pool, { env = process.env, mail = null, updateOrder = null, sendRecovery } = {}) {
- const sessions = new Map(), attempts = new Map();
+ const attempts = new Map();
  const demo = env.DASHBOARD_DEMO === 'true';
+ const { createStaffSessions, SESSION_AGE } = require('./staff-sessions');
+ const sessions = createStaffSessions(pool, { demo });
  const secureCookie = env.NODE_ENV === 'production' || env.RENDER === 'true';
  if (demo && env.NODE_ENV === 'production') throw Error('Demo must not run in production');
  const { createStaffAccounts, normalizeEmail, validEmail, validPassword } = require('./staff-accounts');
@@ -27,17 +29,13 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
 
  const inbox = [{id:'demo-1',subject:'Inspiration for my celebration cake',from:'Customer <customer@example.invalid>',date:new Date().toISOString(),text:'Hello Felicia, could we discuss a pink cake for Saturday? This is a sample message, not a real email.'}];
 
- function session(req) {
+ function session(req) { return req.staffSession || null; }
+ function sessionToken(req) {
   const raw=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('fb_session='));
-  let sessionKey='';
-  try { sessionKey=raw?decodeURIComponent(raw.slice('fb_session='.length)):''; } catch { return null; }
-  const entry=sessions.get(sessionKey);
-  if (!entry || entry.expires<Date.now()) {sessions.delete(sessionKey);return null;}
-  return {token:sessionKey,...entry};
+  try { return raw?decodeURIComponent(raw.slice('fb_session='.length)):''; } catch { return ''; }
  }
 
  const cleanup=setInterval(()=>{
-  for(const [k,v] of sessions)if(v.expires<Date.now())sessions.delete(k);
   for(const [k,v] of attempts)if(v.until<Date.now())attempts.delete(k);
  },60000);
  cleanup.unref();
@@ -70,7 +68,7 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   if(!validPassword(req.body.password))return res.status(400).json({message:'Choose a password between 16 and 128 characters.'});
   const changed=await accounts.resetPassword(req.body.token,req.body.password);
   if(!changed)return res.status(400).json({message:'This reset link is invalid, expired or already used. Request a new link.'});
-  for(const [token,entry] of sessions)if(entry.user.email===changed.email)sessions.delete(token);
+  // The persisted credential version revokes every existing session.
   res.clearCookie('fb_session',{path:'/',sameSite:'strict',secure:secureCookie});
   res.json({message:'Password updated. Sign in with your new password. Your business mailbox password has not changed.'});
   setImmediate(()=>accounts.notifyPasswordChanged(changed.email).catch(()=>console.error('Staff password change notification failed.')));
@@ -79,27 +77,16 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
  // Recheck the persisted credential version on every session-bearing API request.
  // This also revokes sessions held by another process after a reset.
  app.use('/admin/api',(req,res,next)=>{
-  const current=session(req);
-  if(!current)return next();
-  accounts.sessionValid(current).then(valid=>{
-   if(!valid)sessions.delete(current.token);
+  Promise.resolve().then(async()=>{
+   const current=await sessions.load(sessionToken(req));
+   if(current && await accounts.sessionValid(current)) req.staffSession=current;
+   else if(current) await sessions.remove(current.token);
    next();
   }).catch(()=>res.status(503).json({message:'Sign-in is temporarily unavailable. Please try again.'}));
  });
 
- // Temporary session diagnostics. No passwords or tokens are logged.
  app.get('/admin/api/session', (req, res) => {
   const current = session(req);
-  const cookiePresent = (req.headers.cookie || '')
-    .split(';')
-    .some(cookie => cookie.trim().startsWith('fb_session='));
-
-  console.info('[admin session diagnostic]', {
-   cookiePresent,
-   sessionFound: !!current,
-   activeSessions: sessions.size
-  });
-
   res.json({
    authenticated: !!current,
    demo,
@@ -120,17 +107,16 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
    return res.status(401).json({message:'The admin password is incorrect.'});
   }
   const {role,credentialVersion}=account;
-  if(sessions.size>=1000)return res.status(503).json({message:'Please try again later.'});
 
   const old=session(req);
-  if(old)sessions.delete(old.token);
+  if(old)await sessions.remove(old.token);
   const configuredName=role==='owner'?env.STAFF_OWNER_NAME:env.STAFF_DEVELOPER_NAME;
   const displayName=String(configuredName||(email==='info@feliciabakes.co.za'?'Felicia':email==='dev@feliciabakes.co.za'?'Vinolia':email.split('@')[0])).trim().slice(0,80)||email.split('@')[0];
   const token=crypto.randomBytes(32).toString('hex');
-  sessions.set(token,{expires:Date.now()+8*3600000,credentialVersion,user:{email,role,displayName}});
+  await sessions.create(token,{credentialVersion,user:{email,role,displayName}});
   attempts.delete(key);
 
-  res.cookie('fb_session',token,{httpOnly:true,secure:secureCookie,sameSite:'strict',path:'/',maxAge:8*3600000});
+  res.cookie('fb_session',token,{httpOnly:true,secure:secureCookie,sameSite:'strict',path:'/',maxAge:SESSION_AGE});
   res.json({ok:true});
  }));
 
@@ -139,11 +125,11 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   next();
  });
 
- app.post('/admin/api/logout',(req,res)=>{
-  sessions.delete(session(req)?.token);
-  res.clearCookie('fb_session',{path:'/',sameSite:'strict'});
+ app.post('/admin/api/logout',authSafe(async(req,res)=>{
+  await sessions.remove(session(req).token);
+  res.clearCookie('fb_session',{path:'/',sameSite:'strict',secure:secureCookie});
   res.json({ok:true});
- });
+ }));
 
  require('./content-planner').installPlanner(app,pool,{demo,showcase:env.DASHBOARD_DEMO_SHOWCASE==='true',authorize:session});
  const newsletter=require('./newsletter').installNewsletter(app,pool,{env,demo,authorize:session});
