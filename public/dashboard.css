@@ -376,6 +376,16 @@ footer {
 .login-card p {
   margin-bottom: 16px;
 }
+.recovery-page {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+.recovery-page .login-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 .login-card form {
   padding: 20px;
   margin-top: 20px;
