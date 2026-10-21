@@ -41,7 +41,7 @@ start().catch(err=>{$('loginError').textContent=err.message;});
 
 const menuToggle=$('menuToggle'),sideMenu=$('sideMenu'),menuShade=$('menuShade');
 const mobileMenu=matchMedia('(max-width:760px)');
-function setMenu(open){sideMenu.classList.toggle('open',open);menuShade.hidden=!open;menuToggle.setAttribute('aria-expanded',String(open));sideMenu.inert=mobileMenu.matches&&!open;if(mobileMenu.matches&&!open)menuToggle.focus();}
+function setMenu(open){sideMenu.classList.toggle('open',open);menuShade.hidden=!open;menuToggle.setAttribute('aria-expanded',String(open));menuToggle.querySelector('[data-menu-label]').textContent=open?'Close menu':'Menu';sideMenu.inert=mobileMenu.matches&&!open;if(mobileMenu.matches&&!open)menuToggle.focus();}
 mobileMenu.addEventListener('change',()=>setMenu(false));
 sideMenu.inert=mobileMenu.matches;
 menuToggle.onclick=()=>setMenu(!sideMenu.classList.contains('open'));

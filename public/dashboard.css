@@ -98,6 +98,7 @@ button:not(.cta-button):not(.submit-btn) {
   color: #eb1761;
   font-size: 0.85rem;
 }
+.mobile-overview-brand,
 .menu-toggle,
 .menu-shade {
   display: none;
@@ -458,8 +459,14 @@ textarea:focus-visible {
   .side-menu.open {
     transform: translateX(0);
   }
-  .menu-toggle {
-    display: block;
+  button.menu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 14px 20px;
+    font-size: 18px;
+    line-height: 1.4;
     position: sticky;
     top: 0;
     z-index: 30;
@@ -467,6 +474,43 @@ textarea:focus-visible {
     border-radius: 0 !important;
     text-align: left;
     background: #ff6098 !important;
+  }
+  .menu-toggle svg {
+    flex-shrink: 0;
+  }
+  .side-menu .nav {
+    min-height: 48px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .mobile-overview-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .mobile-overview-brand img {
+    width: 88px;
+    height: 88px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  .mobile-overview-brand h2 {
+    margin: 0;
+    font-family: "IBM Plex Serif", serif;
+    font-size: clamp(24px, 7vw, 28px);
+    line-height: 1.2;
+    color: #c71f5c;
+  }
+  .mobile-overview-brand p {
+    margin: 6px 0 0;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--plum);
+  }
+  .mobile-overview-brand .mobile-brand-tagline {
+    font-size: 14px;
+    color: #9a2052;
   }
   .menu-shade:not([hidden]) {
     display: block;
