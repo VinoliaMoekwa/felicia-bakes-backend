@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="robots" content="noindex,nofollow">
+ <meta name="referrer" content="no-referrer">
+ <title>Recover your bakery desk | Felicia Bakes</title>
+ <link rel="stylesheet" href="site-styles/normalize.css">
+ <link rel="stylesheet" href="site-styles/base.css">
+ <link rel="stylesheet" href="site-styles/medium.css">
+ <link rel="stylesheet" href="site-styles/mobile.css">
+ <link rel="stylesheet" href="dashboard.css">
+ <script defer src="recover.js"></script>
+</head>
+<body>
+ <main class="login recovery-page">
+  <section class="login-card" aria-labelledby="recoveryTitle">
+   <img src="logo.png" alt="Felicia Bakes">
+   <h1 id="recoveryTitle" class="brand-name">Recover your bakery desk</h1>
+   <p id="recoveryMessage" role="status" aria-live="polite">Checking password recovery…</p>
+   <form id="requestResetForm" hidden>
+    <p>Enter the staff email address you use to sign in. We’ll email you a link to choose a new dashboard password.</p>
+    <label for="recoveryEmail">Staff email address</label>
+    <input id="recoveryEmail" type="email" autocomplete="username" maxlength="254" required>
+    <button class="submit-btn">Send reset link</button>
+   </form>
+   <form id="resetPasswordForm" hidden>
+    <p>Choose a dashboard password between 16 and 128 characters. Spaces are welcome.</p>
+    <label for="newPassword">New password</label>
+    <input id="newPassword" type="password" autocomplete="new-password" minlength="16" maxlength="128" required>
+    <label for="confirmPassword">Confirm new password</label>
+    <input id="confirmPassword" type="password" autocomplete="new-password" minlength="16" maxlength="128" required>
+    <button class="submit-btn">Save new password</button>
+    <p><a href="recover.html">Request another reset link</a></p>
+   </form>
+   <p id="recoveryError" role="alert"></p>
+   <p><a href="/admin/">Back to sign in</a></p>
+   <details>
+    <summary>Can’t access your staff email?</summary>
+    <p>This resets your bakery desk password. Your business email mailbox has a separate password. If you have forgotten your sign-in email or lost access to that inbox, contact Oatle Technologies through your usual support channel so your ownership can be checked.</p>
+    <p>Never share your password or reset link.</p>
+   </details>
+  </section>
+ </main>
+</body>
+</html>

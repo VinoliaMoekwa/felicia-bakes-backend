@@ -1,6 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const {createApp}=require('../server');
 test('original create → dashboard read/update → original customer tracking share one order store',async()=>{
  const rows=[];const pool={async query(sql,args=[]){
+  if(sql.includes('FROM staff_credentials'))return {rows:[]};
   if(sql.includes('COUNT(*)'))return {rows:[{count:String(rows.length)}]};
   if(sql.includes('INSERT INTO orders')){const columns=sql.match(/INSERT INTO orders\s*\(([\s\S]+?)\)\s*VALUES/)[1].split(',').map(x=>x.trim());const order={id:rows.length+1,created_at:new Date().toISOString()};columns.forEach((k,i)=>order[k]=args[i]);rows.push(order);return {rows:[{...order}]};}
   if(sql.startsWith('UPDATE orders')){const order=rows.find(o=>o.order_number.toLowerCase()===args[1].toLowerCase());if(order)order.status=args[0];return {rows:order?[{...order}]:[]};}

@@ -5,11 +5,21 @@ const path = require('node:path');
 
 const STAGES = ['Quote Requested','Deposit Paid','Design Confirmed','Baking','Decorating','Ready for Collection','Collected'];
 
-function installAdmin(app, pool, { env = process.env, mail = null, updateOrder = null } = {}) {
+function installAdmin(app, pool, { env = process.env, mail = null, updateOrder = null, sendRecovery } = {}) {
  const sessions = new Map(), attempts = new Map();
  const demo = env.DASHBOARD_DEMO === 'true';
  const secureCookie = env.NODE_ENV === 'production' || env.RENDER === 'true';
  if (demo && env.NODE_ENV === 'production') throw Error('Demo must not run in production');
+ const { createStaffAccounts, normalizeEmail, validEmail, validPassword } = require('./staff-accounts');
+ const accounts = createStaffAccounts(pool, { env, demo, sendRecovery });
+ const safe=fn=>(req,res)=>Promise.resolve(fn(req,res)).catch(()=>res.status(502).json({message:'Could not complete this request. Please try again.'}));
+ const authSafe=fn=>(req,res)=>Promise.resolve(fn(req,res)).catch(()=>res.status(503).json({message:'Sign-in or recovery is temporarily unavailable. Please try again.'}));
+ function allowAttempt(key, maximum) {
+  let state=attempts.get(key);
+  if(!state||state.until<Date.now())state={count:0,until:Date.now()+900000};
+  if(state.count>=maximum||(!attempts.has(key)&&attempts.size>=10000))return false;
+  state.count++;attempts.set(key,state);return true;
+ }
 
  const demoOrders = [{id:1,order_number:'DEMO001',name:'Demo customer',email:'customer@example.invalid',phone_number:'',message:'Pink celebration cake, serves 12.',flavour:'Vanilla',cake_size:'Small',status:'Quote Requested',created_at:new Date().toISOString()}];
  demoOrders.push({id:2,order_number:'DEMO002',name:'Sample celebration',email:'celebration@example.invalid',message:'Buttercream flowers in soft pink.',flavour:'Chocolate',cake_size:'Medium',event_date:new Date(Date.now()+86400000).toISOString().slice(0,10),event_time:'14:00:00',status:'Decorating',created_at:new Date(Date.now()-86400000).toISOString()}, {id:3,order_number:'DEMO003',name:'Sample cupcake order',email:'cupcakes@example.invalid',message:'Two dozen cupcakes for a birthday.',cupcake_selected:true,cupcake_quantity:24,cupcake_topping:'Buttercream',event_date:new Date(Date.now()+2*86400000).toISOString().slice(0,10),event_time:'10:00:00',status:'Design Confirmed',created_at:new Date().toISOString()});
@@ -19,7 +29,8 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
 
  function session(req) {
   const raw=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('fb_session='));
-  const sessionKey=raw?decodeURIComponent(raw.slice('fb_session='.length)):'';
+  let sessionKey='';
+  try { sessionKey=raw?decodeURIComponent(raw.slice('fb_session='.length)):''; } catch { return null; }
   const entry=sessions.get(sessionKey);
   if (!entry || entry.expires<Date.now()) {sessions.delete(sessionKey);return null;}
   return {token:sessionKey,...entry};
@@ -39,6 +50,41 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
    if(!origin || (expected ? origin!==expected : !['http://127.0.0.1:'+req.socket.localPort,'http://localhost:'+req.socket.localPort].includes(origin)))return res.status(403).json({message:'Request origin is not allowed.'});
   }
   next();
+ });
+
+ app.get('/admin/api/recovery-status', (req,res)=>res.json({available:accounts.configured()}));
+
+ app.post('/admin/api/request-password-reset', (req,res)=>{
+  if(!accounts.configured())return res.status(503).json({message:'Password recovery is not available yet. Contact your account administrator.'});
+  if(!allowAttempt('recovery:'+req.ip,5))return res.status(429).json({message:'Too many requests. Try again in 15 minutes.'});
+  const email=normalizeEmail(req.body.email);
+  if(!validEmail(email))return res.status(400).json({message:'Enter a valid staff email address.'});
+  // Identical response and asynchronous work for known and unknown addresses.
+  res.status(202).json({message:'If this is a configured staff email, a reset link will be sent. Check your inbox and spam folder. Allow a minute before requesting another link.'});
+  setImmediate(()=>accounts.requestReset(email).catch(()=>console.error('Staff password recovery delivery failed.')));
+ });
+
+ app.post('/admin/api/reset-password',authSafe(async(req,res)=>{
+  if(!accounts.configured())return res.status(503).json({message:'Password recovery is not available yet. Contact your account administrator.'});
+  if(!allowAttempt('reset:'+req.ip,10))return res.status(429).json({message:'Too many requests. Try again in 15 minutes.'});
+  if(!validPassword(req.body.password))return res.status(400).json({message:'Choose a password between 16 and 128 characters.'});
+  const changed=await accounts.resetPassword(req.body.token,req.body.password);
+  if(!changed)return res.status(400).json({message:'This reset link is invalid, expired or already used. Request a new link.'});
+  for(const [token,entry] of sessions)if(entry.user.email===changed.email)sessions.delete(token);
+  res.clearCookie('fb_session',{path:'/',sameSite:'strict',secure:secureCookie});
+  res.json({message:'Password updated. Sign in with your new password. Your business mailbox password has not changed.'});
+  setImmediate(()=>accounts.notifyPasswordChanged(changed.email).catch(()=>console.error('Staff password change notification failed.')));
+ }));
+
+ // Recheck the persisted credential version on every session-bearing API request.
+ // This also revokes sessions held by another process after a reset.
+ app.use('/admin/api',(req,res,next)=>{
+  const current=session(req);
+  if(!current)return next();
+  accounts.sessionValid(current).then(valid=>{
+   if(!valid)sessions.delete(current.token);
+   next();
+  }).catch(()=>res.status(503).json({message:'Sign-in is temporarily unavailable. Please try again.'}));
  });
 
  // Temporary session diagnostics. No passwords or tokens are logged.
@@ -65,23 +111,15 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   });
  });
 
- app.post('/admin/api/login',(req,res)=>{
-  const key=req.ip;
-  let state=attempts.get(key)||{count:0,until:Date.now()+900000};
-  if(state.until<Date.now())state={count:0,until:Date.now()+900000};
-  if(state.count>=10)return res.status(429).json({message:'Too many attempts. Try again in 15 minutes.'});
-
-  const email=String(req.body.email||'').toLowerCase().trim();
-  const role=email===(env.STAFF_OWNER_EMAIL||'info@feliciabakes.co.za')?'owner':email===(env.STAFF_DEVELOPER_EMAIL||'dev@feliciabakes.co.za')?'developer':null;
-  const staffPassword=kind=>env['STAFF_'+kind+'_PASSWORD_B64']?Buffer.from(env['STAFF_'+kind+'_PASSWORD_B64'],'base64').toString('utf8'):(env['STAFF_'+kind+'_PASSWORD']||'');
-  const expected=role==='owner'?staffPassword('OWNER'):role==='developer'?staffPassword('DEVELOPER'):'';
-  const given=typeof req.body.password==='string'?req.body.password:'';
-
-  if(!expected||!crypto.timingSafeEqual(crypto.createHash('sha256').update(given).digest(),crypto.createHash('sha256').update(expected).digest())){
-   state.count++;
-   attempts.set(key,state);
+ app.post('/admin/api/login',authSafe(async(req,res)=>{
+  const key='login:'+req.ip;
+  if(!allowAttempt(key,10))return res.status(429).json({message:'Too many attempts. Try again in 15 minutes.'});
+  const email=normalizeEmail(req.body.email);
+  const account=await accounts.authenticate(email,req.body.password);
+  if(!account){
    return res.status(401).json({message:'The admin password is incorrect.'});
   }
+  const {role,credentialVersion}=account;
   if(sessions.size>=1000)return res.status(503).json({message:'Please try again later.'});
 
   const old=session(req);
@@ -89,12 +127,12 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   const configuredName=role==='owner'?env.STAFF_OWNER_NAME:env.STAFF_DEVELOPER_NAME;
   const displayName=String(configuredName||(email==='info@feliciabakes.co.za'?'Felicia':email==='dev@feliciabakes.co.za'?'Vinolia':email.split('@')[0])).trim().slice(0,80)||email.split('@')[0];
   const token=crypto.randomBytes(32).toString('hex');
-  sessions.set(token,{expires:Date.now()+8*3600000,user:{email,role,displayName}});
+  sessions.set(token,{expires:Date.now()+8*3600000,credentialVersion,user:{email,role,displayName}});
   attempts.delete(key);
 
   res.cookie('fb_session',token,{httpOnly:true,secure:secureCookie,sameSite:'strict',path:'/',maxAge:8*3600000});
   res.json({ok:true});
- });
+ }));
 
  app.use('/admin/api',(req,res,next)=>{
   if(!session(req))return res.status(401).json({message:'Please sign in.'});
@@ -106,8 +144,6 @@ function installAdmin(app, pool, { env = process.env, mail = null, updateOrder =
   res.clearCookie('fb_session',{path:'/',sameSite:'strict'});
   res.json({ok:true});
  });
-
- const safe=fn=>(req,res)=>Promise.resolve(fn(req,res)).catch(()=>res.status(502).json({message:'Could not complete this request. Please try again.'}));
 
  require('./content-planner').installPlanner(app,pool,{demo,showcase:env.DASHBOARD_DEMO_SHOWCASE==='true',authorize:session});
  const newsletter=require('./newsletter').installNewsletter(app,pool,{env,demo,authorize:session});

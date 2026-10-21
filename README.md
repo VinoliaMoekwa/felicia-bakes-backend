@@ -10,6 +10,12 @@ Mailbox uses Domains.co.za IMAP TLS; one-to-one sending uses Brevo HTTPS, so no 
 
 `npm run demo` is localhost-only synthetic data and must never be used as the production entry point. Tests use synthetic providers; the explicit disposable PostgreSQL integration script never accepts remote URLs.
 
+## Staff password recovery
+
+The sign-in screen links to `/admin/recover.html`. After activation, owner and developer accounts can request a one-use reset email through the existing Brevo sender. Tokens expire after 30 minutes. New passwords use salted scrypt hashes in PostgreSQL; the old environment password stops working for that account after its first reset. Password changes invalidate existing sessions, including on other app instances. Recovery does not change a mailbox password or a staff login email.
+
+See [staff-recovery.md](staff-recovery.md) for the unapplied additive schema, activation order, delivery test and rollback precautions. This feature is prepared only: no database setup, live send or deployment was performed as part of this change.
+
 ## Phone home-screen app
 
 The dashboard manifest names the app **Felicia Bakes**, with the existing logo on white PNG icons, white launch/theme colors, `/admin/` start URL/scope and standalone display. Apple touch icon and light/default status bar metadata are included. Use “Install on your phone” for device instructions; supported Chromium browsers offer an install button when eligible. iPhone users open the dashboard in Safari, Share → Add to Home Screen → Add; Android users use Chrome's Install app/Add to Home screen menu. Installation stays device-specific; owner/developer still use distinct sign-in credentials.
