@@ -1,8 +1,9 @@
 const test=require('node:test');const assert=require('node:assert/strict');const {createApp}=require('../server');
 const {sessionStoreDouble}=require('./session-store-double');
+const {quoteStoreDouble}=require('./quote-store-double');
 test('original create → dashboard read/update → original customer tracking share one order store',async()=>{
  const sessionStore=sessionStoreDouble();
- const rows=[];const pool={async query(sql,args=[]){
+ const rows=[];const quotes=quoteStoreDouble(rows);const pool={connect:quotes.connect,async query(sql,args=[]){
   const sessionResult=sessionStore.query(sql,args);if(sessionResult)return sessionResult;
   if(sql.includes('FROM staff_credentials'))return {rows:[]};
   if(sql.includes('COUNT(*)'))return {rows:[{count:String(rows.length)}]};
